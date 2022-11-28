@@ -1,0 +1,4 @@
+,degree_i,degree_j,common_neighbors,shortest_path,adamic_adar,pref_attach,jaccard,label
+"(80, 50)",8,1,0,4,0,8,0.0,0
+"(57, 92)",3,2,0,4,0,6,0.0,0
+"(50, 92)",1,2,0,4,0,2,0.0,0

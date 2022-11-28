@@ -1,22 +1,30 @@
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
-from imblearn.under_sampling import RandomUnderSampler
+from imblearn.under_sampling import RandomUnderSampler, NearMiss
 import sys
 import pandas as pd
 
 if __name__ == "__main__":
 
-    if len(sys.argv) != 2:
-        print("Usage: python train.py <data_file>")
+    if len(sys.argv) != 4:
+        print("Usage: python train.py <data_file> <directed|undirected> <undersampling_strategy>")
         exit(1)
 
     data_file = sys.argv[1]
-    features = pd.read_csv('data/' + data_file)
+    features = pd.read_csv('data/clean_datasets/' + data_file)
 
-    X_train, X_test, y_train, y_test = train_test_split(features[[
-        'indegree_i', 'outdegree_i', 'indegree_j', 'outdegree_j', 'common_neighbors', 'shortest_path',
-        'adamic_adar', 'pref_attach', 'jaccard']].values, features['label'], test_size=0.3, random_state=0)
+    if sys.argv[2] == 'directed':
+        X_train, X_test, y_train, y_test = train_test_split(features[[
+            'indegree_i', 'outdegree_i', 'indegree_j', 'outdegree_j', 'common_neighbors', 'shortest_path',
+            'adamic_adar', 'pref_attach', 'jaccard']].values, features['label'], test_size=0.3, random_state=0)
+    elif sys.argv[2] == 'undirected':
+        X_train, X_test, y_train, y_test = train_test_split(features[[
+            'degree_i', 'degree_j', 'common_neighbors', 'shortest_path',
+            'adamic_adar', 'pref_attach', 'jaccard']].values, features['label'], test_size=0.3, random_state=0)
+    else:
+        print("Usage: python train.py <data_file> <directed|undirected> <undersampling_strategy>")
+        exit(1)
 
     clf = LogisticRegression()
     
@@ -35,9 +43,24 @@ if __name__ == "__main__":
     recall = [report['weighted avg']['recall']]
     f1 = [report['weighted avg']['f1-score']]
 
-    for ratio in [0.2, 0.4, 0.6, 0.8, 1.0]:
+    original_ratio = y_train.value_counts()[1] / y_train.value_counts()[0]
+    ratios = [r for r in [0.2, 0.4, 0.6, 0.8, 1.0] if r > original_ratio]
+
+    us_strategy = sys.argv[3]
+
+    for ratio in ratios:
         # print(f"----RATIO:{ratio}----")
-        undersample = RandomUnderSampler(sampling_strategy=ratio)
+        if us_strategy == 'random':
+            undersample = RandomUnderSampler(sampling_strategy=ratio)
+        elif us_strategy == 'nearmiss1':
+            undersample = NearMiss(sampling_strategy=ratio, version=1)
+        elif us_strategy == 'nearmiss2':
+            undersample = NearMiss(sampling_strategy=ratio, version=2)
+        elif us_strategy == 'nearmiss3':
+            undersample = NearMiss(sampling_strategy=ratio, version=3)
+        else:
+            print("<undersampling_strategy> must be one of: random, nearmiss1, nearmiss2, nearmiss3")
+            exit(1)
         # transform the dataset
         X_train_us, y_train_us = undersample.fit_resample(X_train, y_train)
         clf = LogisticRegression().fit(X_train_us, y_train_us)
@@ -56,7 +79,7 @@ if __name__ == "__main__":
         recall.append(report['weighted avg']['recall'])
         f1.append(report['weighted avg']['f1-score'])
     
-    ratios = [y_train.value_counts()[1] / y_train.value_counts()[0], 0.2, 0.4, 0.6, 0.8, 1.0]
+    ratios = [y_train.value_counts()[1] / y_train.value_counts()[0]] + ratios
     results = pd.DataFrame({
         'ratio': ratios,
         'majority precision': maj_precision,
@@ -76,4 +99,4 @@ if __name__ == "__main__":
         results[col] = results[col].map('{:,.3f}'.format)
 
     filename = data_file.split('.')[0]
-    results.to_csv(f'results/{filename}_results.csv')
+    results.to_csv(f'results/{filename}_{us_strategy}_results.csv')
