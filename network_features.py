@@ -20,7 +20,7 @@ def get_node_pairs(G, label_edges, n_deg):
     print(f"Extracting the {n_deg}-degree neighbors of each node...")
 
     nodes = set()
-    for edge in label_edges:
+    for edge in label_edges.keys():
         nodes.add(edge[0])
         nodes.add(edge[1])
 
@@ -30,6 +30,50 @@ def get_node_pairs(G, label_edges, n_deg):
             pairs.extend([(node, k_n) for k_n in nx.descendants_at_distance(G, node, n_deg)])
 
     print(f"Extracted {len(pairs)} pairs of nodes.")
+
+    return pairs
+
+def get_features_dict(G, is_weighted, label_edges, G_und=None):
+    features_dict = {}
+    if G_und is None:
+        features_dict["degree_i"] = lambda p: G.degree(p[0])
+        features_dict["degree_j"] = lambda p: G.degree(p[1])
+        if is_weighted:
+            features_dict["volume_i"] = lambda p: nx.volume(G, [p[0]])
+            features_dict["volume_j"] = lambda p: nx.volume(G, [p[1]])
+
+    else:
+        features_dict["indegree_i"] = lambda p: G.in_degree(p[0])
+        features_dict["indegree_j"] = lambda p: G.in_degree(p[1])
+        features_dict["outdegree_i"] = lambda p: G.out_degree(p[0])
+        features_dict["outdegree_j"] = lambda p: G.out_degree(p[1])
+        if is_weighted:
+            features_dict["involume_i"] = lambda p: sum(G[v][p[0]]['weight'] for v in G.predecessors(p[0]))
+            features_dict["outvolume_i"] = lambda p: nx.volume(G, [p[0]])
+            features_dict["involume_j"] = lambda p: sum(G[v][p[1]]['weight'] for v in G.predecessors(p[1]))
+            features_dict["outvolume_j"] = lambda p: nx.volume(G, [p[1]])
+
+    if is_weighted:
+        features_dict["shortest_path"] = lambda p: nx.shortest_path_length(G, p[0], p[1], weight="weight")
+    
+    print("Calculating katz...")
+    katz_dict = nx.katz_centrality_numpy(G)
+
+    features_dict["katz_i"] = lambda p: katz_dict.get(p[0], 0)
+    features_dict["katz_j"] = lambda p: katz_dict.get(p[1], 0)
+
+    features_dict["common_neighbors_list"] = lambda p: common_neighbors(G if G_und is None else G_und, p[0], p[1])
+    features_dict["pref_attach"] = lambda p: list(nx.preferential_attachment(G if G_und is None else G_und, [(p[0], p[1])]))[0][2]
+
+    print("Calculating pagerank...")
+    pagerank_dict = nx.pagerank(G)
+
+    features_dict["pagerank_i"] = lambda p: pagerank_dict[p[0]]
+    features_dict["pagerank_j"] = lambda p: pagerank_dict[p[1]]
+
+    features_dict["label"] = lambda p: label_edges.get(p, 0)
+
+    return features_dict
 
 
 def get_directed_features(feature_edges, label_edges, n_deg, is_weighted):
@@ -45,21 +89,7 @@ def get_directed_features(feature_edges, label_edges, n_deg, is_weighted):
     start = time.time()
     print("Extracting features...")
 
-    print("Calculating katz...")
-    katz_dict = nx.katz_centrality_numpy(G)
-
-    features_dict = {
-        "indegree_i": lambda p: G.in_degree(p[0]),
-        "indegree_j": lambda p: G.in_degree(p[1]),
-        "outdegree_i": lambda p: G.out_degree(p[0]),
-        "outdegree_j": lambda p: G.out_degree(p[1]),
-        "katz_i": lambda p: katz_dict.get(p[0], 0),
-        "katz_j": lambda p: katz_dict.get(p[1], 0),
-        "common_neighbors_list": lambda p: common_neighbors(G_und, p[0], p[1]),
-        "pref_attach": lambda p: list(nx.preferential_attachment(G_und, [(p[0], p[1])]))[0][2],
-        "label": lambda p: label_edges.get(p, 0),
-    }
-
+    features_dict = get_features_dict(G, is_weighted, label_edges, G_und)
     features = pd.DataFrame(index=pairs)
 
     for feature_name, func in features_dict.items():
@@ -89,19 +119,7 @@ def get_undirected_features(feature_edges, label_edges, n_deg, is_weighted):
     start = time.time()
     print("Extracting features...")
 
-    print("Calculating katz...")
-    katz_dict = nx.katz_centrality_numpy(G)
-
-    features_dict = {
-        "degree_i": lambda p: G.degree(p[0]),
-        "degree_i": lambda p: G.degree(p[0]),
-        "katz_i": lambda p: katz_dict.get(p[0], 0),
-        "katz_j": lambda p: katz_dict.get(p[1], 0),
-        "common_neighbors_list": lambda p: common_neighbors(G, p[0], p[1]),
-        "pref_attach": lambda p: list(nx.preferential_attachment(G, [(p[0], p[1])]))[0][2],
-        "label": lambda p: label_edges.get(p, 0),
-    }
-
+    features_dict = get_features_dict(G, is_weighted, label_edges)
     features = pd.DataFrame(index=pairs)
 
     for feature_name, func in features_dict.items():

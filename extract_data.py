@@ -59,12 +59,12 @@ if __name__ == "__main__":
     else:
         edges = read_unweighted_edges(f"data/datasets/{dataset}/out.{dataset}")
     feature_edges = [e[1] for e in edges[:int(len(edges)*0.7)]]
-    label_edges = [(e[1][0], e[1][1]) for e in edges[int(len(edges)*0.7):]]
+    label_edges = {(e[1][0], e[1][1]): 1 for e in edges[int(len(edges)*0.7):]}
 
     if is_directed:
-        features = get_directed_features(feature_edges, label_edges, n_deg)
+        features = get_directed_features(feature_edges, label_edges, n_deg, is_weighted)
     else:
-        features = get_undirected_features(feature_edges, label_edges, n_deg)
+        features = get_undirected_features(feature_edges, label_edges, n_deg, is_weighted)
 
     print("Writing to file...")
     features.to_csv(f"data/clean_datasets/{dataset}_{n_deg}.csv")
