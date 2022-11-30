@@ -5,6 +5,9 @@ from imblearn.under_sampling import RandomUnderSampler, NearMiss
 import sys
 import pandas as pd
 
+FEATURES = ['indegree_i', 'outdegree_i', 'indegree_j', 'outdegree_j', 'common_neighbors',
+            'adamic_adar', 'pref_attach', 'jaccard', 'katz_i', 'katz_j']
+
 if __name__ == "__main__":
 
     if len(sys.argv) != 4:
@@ -15,13 +18,9 @@ if __name__ == "__main__":
     features = pd.read_csv('data/clean_datasets/' + data_file)
 
     if sys.argv[2] == 'directed':
-        X_train, X_test, y_train, y_test = train_test_split(features[[
-            'indegree_i', 'outdegree_i', 'indegree_j', 'outdegree_j', 'common_neighbors', 'shortest_path',
-            'adamic_adar', 'pref_attach', 'jaccard']].values, features['label'], test_size=0.3, random_state=0)
+        X_train, X_test, y_train, y_test = train_test_split(features[FEATURES].values, features['label'], test_size=0.3, random_state=0)
     elif sys.argv[2] == 'undirected':
-        X_train, X_test, y_train, y_test = train_test_split(features[[
-            'degree_i', 'degree_j', 'common_neighbors', 'shortest_path',
-            'adamic_adar', 'pref_attach', 'jaccard']].values, features['label'], test_size=0.3, random_state=0)
+        X_train, X_test, y_train, y_test = train_test_split(features[FEATURES].values, features['label'], test_size=0.3, random_state=0)
     else:
         print("Usage: python train.py <data_file> <directed|undirected> <undersampling_strategy>")
         exit(1)
