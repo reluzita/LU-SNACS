@@ -4,62 +4,23 @@ from sklearn.metrics import classification_report
 from imblearn.under_sampling import RandomUnderSampler, NearMiss
 import sys
 import pandas as pd
+import argparse
 
-FEATURES = ['indegree_i', 'outdegree_i', 'indegree_j', 'outdegree_j', 'common_neighbors',
-            'adamic_adar', 'pref_attach', 'jaccard', 'katz_i', 'katz_j']
+def get_us(us_strategy, ratio):
+    if us_strategy == 'random':
+        return RandomUnderSampler(sampling_strategy=ratio)
+    elif us_strategy == 'nearmiss1':
+        return NearMiss(sampling_strategy=ratio, version=1)
+    elif us_strategy == 'nearmiss2':
+        return NearMiss(sampling_strategy=ratio, version=2)
+    elif us_strategy == 'nearmiss3':
+        return NearMiss(sampling_strategy=ratio, version=3)
 
-if __name__ == "__main__":
-
-    if len(sys.argv) != 4:
-        print("Usage: python train.py <data_file> <directed|undirected> <undersampling_strategy>")
-        exit(1)
-
-    data_file = sys.argv[1]
-    features = pd.read_csv('data/clean_datasets/' + data_file)
-
-    if sys.argv[2] == 'directed':
-        X_train, X_test, y_train, y_test = train_test_split(features[FEATURES].values, features['label'], test_size=0.3, random_state=0)
-    elif sys.argv[2] == 'undirected':
-        X_train, X_test, y_train, y_test = train_test_split(features[FEATURES].values, features['label'], test_size=0.3, random_state=0)
-    else:
-        print("Usage: python train.py <data_file> <directed|undirected> <undersampling_strategy>")
-        exit(1)
-
-    clf = LogisticRegression()
-    
-    clf.fit(X_train, y_train)
-    y_pred = clf.predict(X_test)
-    report = classification_report(y_test, y_pred, output_dict=True)
-
-    maj_precision = [report['0']['precision']]
-    maj_recall = [report['0']['recall']]
-    maj_f1 = [report['0']['f1-score']]
-    min_precision = [report['1']['precision']]
-    min_recall = [report['1']['recall']]
-    min_f1 = [report['1']['f1-score']]
-    accuracy = [report['accuracy']]
-    precision = [report['weighted avg']['precision']]
-    recall = [report['weighted avg']['recall']]
-    f1 = [report['weighted avg']['f1-score']]
-
-    original_ratio = y_train.value_counts()[1] / y_train.value_counts()[0]
-    ratios = [r for r in [0.2, 0.4, 0.6, 0.8, 1.0] if r > original_ratio]
-
-    us_strategy = sys.argv[3]
-
+def train_us_ratios(X_train, y_train, X_test, y_test, ratios, us_strategy, results):
     for ratio in ratios:
         # print(f"----RATIO:{ratio}----")
-        if us_strategy == 'random':
-            undersample = RandomUnderSampler(sampling_strategy=ratio)
-        elif us_strategy == 'nearmiss1':
-            undersample = NearMiss(sampling_strategy=ratio, version=1)
-        elif us_strategy == 'nearmiss2':
-            undersample = NearMiss(sampling_strategy=ratio, version=2)
-        elif us_strategy == 'nearmiss3':
-            undersample = NearMiss(sampling_strategy=ratio, version=3)
-        else:
-            print("<undersampling_strategy> must be one of: random, nearmiss1, nearmiss2, nearmiss3")
-            exit(1)
+        undersample = get_us(us_strategy, ratio)
+
         # transform the dataset
         X_train_us, y_train_us = undersample.fit_resample(X_train, y_train)
         clf = LogisticRegression().fit(X_train_us, y_train_us)
@@ -67,35 +28,67 @@ if __name__ == "__main__":
         
         report = classification_report(y_test, y_pred, output_dict=True)
 
-        maj_precision.append(report['0']['precision'])
-        maj_recall.append(report['0']['recall'])
-        maj_f1.append(report['0']['f1-score'])
-        min_precision.append(report['1']['precision'])
-        min_recall.append(report['1']['recall'])
-        min_f1.append(report['1']['f1-score'])
-        accuracy.append(report['accuracy'])
-        precision.append(report['weighted avg']['precision'])
-        recall.append(report['weighted avg']['recall'])
-        f1.append(report['weighted avg']['f1-score'])
+        results["majority precision"].append(report['0']['precision'])
+        results["majority recall"].append(report['0']['recall'])
+        results["majority f1"].append(report['0']['f1-score'])
+        results["minority precision"].append(report['1']['precision'])
+        results["minority recall"].append(report['1']['recall'])
+        results["minority f1"].append(report['1']['f1-score'])
+        results["accuracy"].append(report['accuracy'])
+        results["macro avg precision"].append(report['macro avg']['precision'])
+        results["macro avg recall"].append(report['macro avg']['recall'])
+        results["macro avg f1"].append(report['macro avg']['f1-score'])
     
-    ratios = [y_train.value_counts()[1] / y_train.value_counts()[0]] + ratios
-    results = pd.DataFrame({
-        'ratio': ratios,
-        'majority precision': maj_precision,
-        'majority recall': maj_recall,
-        'majority f1': maj_f1,
-        'minority precision': min_precision,
-        'minority recall': min_recall,
-        'minority f1': min_f1,
-        'accuracy': accuracy,
-        'weighted avg precision': precision,
-        'weighted avg recall': recall,
-        'weighted avg f1': f1
-    }).set_index('ratio')
+    return results
+    
 
-    results.index = results.index.map('{:,.3f}'.format)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        prog = 'Extract data',
+        description = 'Construct dataset for supervised link prediction from a network dataset')
+
+    parser.add_argument('datafile', type=str, help='Dataset file name')
+    parser.add_argument('us_strategy', type=str, help='Undersampling technique to apply', choices=['random', 'nearmiss1', 'nearmiss2', 'nearmiss3'])
+    
+    args = parser.parse_args()
+
+    data_file = args.datafile
+    features = pd.read_csv('data/clean_datasets/' + data_file).set_index('Unnamed: 0')
+
+    feature_names = list(features.columns)
+    feature_names.remove('label')
+    X_train, X_test, y_train, y_test = train_test_split(features[feature_names].values, features['label'], test_size=0.3, random_state=0)
+   
+    clf = LogisticRegression()
+    
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    report = classification_report(y_test, y_pred, output_dict=True)
+
+    results = {
+        'majority precision': [report['0']['precision']],
+        'majority recall': [report['0']['recall']],
+        'majority f1': [report['0']['f1-score']],
+        'minority precision': [report['1']['precision']],
+        'minority recall': [report['1']['recall']],
+        'minority f1': [report['1']['f1-score']],
+        'accuracy': [report['accuracy']],
+        'macro avg precision': [report['macro avg']['precision']],
+        'macro avg recall': [report['macro avg']['recall']],
+        'macro avg f1': [report['macro avg']['f1-score']]
+    }
+
+    original_ratio = y_train.value_counts()[1] / y_train.value_counts()[0]
+    ratios = [r for r in [0.2, 0.4, 0.6, 0.8, 1.0] if r > original_ratio]
+
+    results = train_us_ratios(X_train, y_train, X_test, y_test, ratios, args.us_strategy, results)
+
+    ratios = [y_train.value_counts()[1] / y_train.value_counts()[0]] + ratios
+    results['ratio'] = ratios
+
+    results = pd.DataFrame(results)
     for col in results.columns:
         results[col] = results[col].map('{:,.3f}'.format)
 
     filename = data_file.split('.')[0]
-    results.to_csv(f'results/{filename}_{us_strategy}_results.csv')
+    results.to_csv(f'results/{filename}_{args.us_strategy}_results.csv')

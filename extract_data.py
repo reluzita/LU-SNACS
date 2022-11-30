@@ -1,6 +1,3 @@
-import networkx as nx
-import pandas as pd
-from tqdm import tqdm
 import argparse
 from network_features import get_directed_features, get_undirected_features
 
@@ -39,8 +36,8 @@ def read_weighted_edges(filename):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-                    prog = 'Extract data',
-                    description = 'Construct dataset for supervised link prediction from a network dataset')
+        prog = 'Extract data',
+        description = 'Construct dataset for supervised link prediction from a network dataset')
 
     parser.add_argument('dataset', type=str, help='Dataset name')
     parser.add_argument('networktype', type=str, help='Type of dataset (directed or undirected)', choices=['directed', 'undirected'])
