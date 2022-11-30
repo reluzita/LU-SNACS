@@ -20,7 +20,7 @@ def get_node_pairs(G, label_edges, n_deg):
     print(f"Extracting the {n_deg}-degree neighbors of each node...")
 
     nodes = set()
-    for edge in label_edges.keys():
+    for edge in label_edges:
         nodes.add(edge[0])
         nodes.add(edge[1])
 
@@ -32,9 +32,12 @@ def get_node_pairs(G, label_edges, n_deg):
     print(f"Extracted {len(pairs)} pairs of nodes.")
 
 
-def get_directed_features(feature_edges, label_edges, n_deg):
+def get_directed_features(feature_edges, label_edges, n_deg, is_weighted):
     G = nx.DiGraph()
-    G.add_weighted_edges_from(feature_edges)
+    if is_weighted:
+        G.add_weighted_edges_from(feature_edges)
+    else:
+        G.add_edges_from(feature_edges)
     G_und = G.to_undirected()
 
     pairs = get_node_pairs(G, label_edges, n_deg)
@@ -43,7 +46,7 @@ def get_directed_features(feature_edges, label_edges, n_deg):
     print("Extracting features...")
 
     print("Calculating katz...")
-    katz_dict = nx.katz_centrality(G)
+    katz_dict = nx.katz_centrality_numpy(G)
 
     features_dict = {
         "indegree_i": lambda p: G.in_degree(p[0]),
@@ -74,9 +77,12 @@ def get_directed_features(feature_edges, label_edges, n_deg):
 
     return features
 
-def get_undirected_features(feature_edges, label_edges, n_deg):
+def get_undirected_features(feature_edges, label_edges, n_deg, is_weighted):
     G = nx.Graph()
-    G.add_weighted_edges_from(feature_edges)
+    if is_weighted:
+        G.add_weighted_edges_from(feature_edges)
+    else:
+        G.add_edges_from(feature_edges)
 
     pairs = get_node_pairs(G, label_edges, n_deg)
 
@@ -84,7 +90,7 @@ def get_undirected_features(feature_edges, label_edges, n_deg):
     print("Extracting features...")
 
     print("Calculating katz...")
-    katz_dict = nx.katz_centrality(G)
+    katz_dict = nx.katz_centrality_numpy(G)
 
     features_dict = {
         "degree_i": lambda p: G.degree(p[0]),

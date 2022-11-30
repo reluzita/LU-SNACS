@@ -4,7 +4,7 @@ from tqdm import tqdm
 import argparse
 from network_features import get_directed_features, get_undirected_features
 
-def read_edges(filename, is_weighted):
+def read_unweighted_edges(filename):
     edges = []
     with open(filename, "r") as f:
         lines = f.readlines()
@@ -12,12 +12,28 @@ def read_edges(filename, is_weighted):
             data = line.strip().split(" ")
             if data[1].find("\t") != -1:
                 data = [data[0]] + data[1].split("\t")
-            
-            if is_weighted:
-                edges.append((int(data[3]), (int(data[0]), int(data[1]), int(data[2]))))
-            else:
-                edges.append((int(data[2]), (int(data[0]), int(data[1]))))
 
+            edges.append((int(data[3]), (int(data[0]), int(data[1]))))
+
+    return sorted(edges, key=lambda x: x[0], reverse=False)
+
+def read_weighted_edges(filename):
+    edges_dict = {}
+    with open(filename, "r") as f:
+        lines = f.readlines()
+        for line in lines[1:]:
+            data = line.strip().split(" ")
+            if data[1].find("\t") != -1:
+                data = [data[0]] + data[1].split("\t")
+            
+            if (int(data[0]), int(data[1])) not in edges_dict:
+                edges_dict[(int(data[0]), int(data[1]))] = {
+                    'weight': 1,
+                    'timestamp': float(data[3])}
+            else:
+                edges_dict[(int(data[0]), int(data[1]))]['weight'] += 1
+            
+    edges = [(v['timestamp'], (k[0], k[1], v['weight'])) for k, v in edges_dict.items()]
     return sorted(edges, key=lambda x: x[0], reverse=False)
 
 
@@ -38,7 +54,10 @@ if __name__ == "__main__":
     is_weighted = (args.edgetype == 'weighted')
     n_deg = args.n
 
-    edges = read_edges(f"data/datasets/{dataset}/out.{dataset}", is_weighted)
+    if is_weighted:
+        edges = read_weighted_edges(f"data/datasets/{dataset}/out.{dataset}")
+    else:
+        edges = read_unweighted_edges(f"data/datasets/{dataset}/out.{dataset}")
     feature_edges = [e[1] for e in edges[:int(len(edges)*0.7)]]
     label_edges = [(e[1][0], e[1][1]) for e in edges[int(len(edges)*0.7):]]
 
