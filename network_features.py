@@ -1,10 +1,8 @@
-import networkx as nx
 import time
+import networkx as nx
 import pandas as pd
 from tqdm import tqdm
-import sys
 from math import log
-
 
 def common_neighbors(G, node_1, node_2):
     return set(G[node_1]).intersection(G[node_2])
@@ -18,39 +16,7 @@ def jaccard(G, features):
     union = len(set(G[features.name[0]]).union(G[features.name[1]]))
     return 0 if union == 0 else features["common_neighbors"] / union
 
-
-def get_features(args):
-    print(f"Extracting {args[1]}...")
-    value = args[0].index.map(args[2])
-    print(f"Finished {args[1]}.")
-    return args[1], value
-
-
-if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python extract_data_directed.py <dataset> <n>")
-        sys.exit(1)
-
-    dataset = sys.argv[1]
-    n_deg = int(sys.argv[2])
-
-    edges = []
-    with open(f"data/datasets/{dataset}/out.{dataset}", "r") as f:
-        lines = f.readlines()
-        for line in lines[1:]:
-            data = line.strip().split(" ")
-            if data[1].find("\t") != -1:
-                data = [data[0]] + data[1].split("\t")
-            edges.append((int(data[3]), (int(data[0]), int(data[1]), int(data[2]))))
-
-    edges = sorted(edges, key=lambda x: x[0], reverse=False)
-    feature_edges = [e[1] for e in edges[:int(len(edges)*0.7)]]
-    label_edges = {(e[1][0], e[1][1]): 1 for e in edges[int(len(edges)*0.7):]}
-
-    G = nx.DiGraph()
-    G.add_weighted_edges_from(feature_edges)
-    G_und = G.to_undirected()
-    
+def get_node_pairs(G, label_edges, n_deg):
     print(f"Extracting the {n_deg}-degree neighbors of each node...")
 
     nodes = set()
@@ -64,6 +30,14 @@ if __name__ == "__main__":
             pairs.extend([(node, k_n) for k_n in nx.descendants_at_distance(G, node, n_deg)])
 
     print(f"Extracted {len(pairs)} pairs of nodes.")
+
+
+def get_directed_features(feature_edges, label_edges, n_deg):
+    G = nx.DiGraph()
+    G.add_weighted_edges_from(feature_edges)
+    G_und = G.to_undirected()
+
+    pairs = get_node_pairs(G, label_edges, n_deg)
 
     start = time.time()
     print("Extracting features...")
@@ -94,13 +68,47 @@ if __name__ == "__main__":
     features["adamic_adar"] = features["common_neighbors_list"].map(lambda c: adamic_adar(G_und, c))
     print("Extracting jaccard...")
     features["jaccard"] = features.apply(lambda row: jaccard(G_und, row), axis=1)
-
     features.drop("common_neighbors_list", axis=1, inplace=True)
 
     print(f"Took {time.time() - start} seconds to get features")
 
-    print("Writing to file...")
+    return features
 
-    features.to_csv(f"data/clean_datasets/{dataset}_{n_deg}.csv")
+def get_undirected_features(feature_edges, label_edges, n_deg):
+    G = nx.Graph()
+    G.add_weighted_edges_from(feature_edges)
 
-    print("Done!")
+    pairs = get_node_pairs(G, label_edges, n_deg)
+
+    start = time.time()
+    print("Extracting features...")
+
+    print("Calculating katz...")
+    katz_dict = nx.katz_centrality(G)
+
+    features_dict = {
+        "degree_i": lambda p: G.degree(p[0]),
+        "degree_i": lambda p: G.degree(p[0]),
+        "katz_i": lambda p: katz_dict.get(p[0], 0),
+        "katz_j": lambda p: katz_dict.get(p[1], 0),
+        "common_neighbors_list": lambda p: common_neighbors(G, p[0], p[1]),
+        "pref_attach": lambda p: list(nx.preferential_attachment(G, [(p[0], p[1])]))[0][2],
+        "label": lambda p: label_edges.get(p, 0),
+    }
+
+    features = pd.DataFrame(index=pairs)
+
+    for feature_name, func in features_dict.items():
+        print(f"Extracting {feature_name}...")
+        features[feature_name] = features.index.map(func)
+
+    features["common_neighbors"] = features["common_neighbors_list"].map(len)
+    print("Extracting adamic_adar...")
+    features["adamic_adar"] = features["common_neighbors_list"].map(lambda c: adamic_adar(G, c))
+    print("Extracting jaccard...")
+    features["jaccard"] = features.apply(lambda row: jaccard(G, row), axis=1)
+    features.drop("common_neighbors_list", axis=1, inplace=True)
+
+    print(f"Took {time.time() - start} seconds to get features")
+
+    return features
