@@ -1,0 +1,3 @@
+ratio,majority precision,majority recall,majority f1,minority precision,minority recall,minority f1,accuracy,macro avg precision,macro avg recall,macro avg f1
+0.004,0.996,1.000,0.998,0.179,0.006,0.011,0.996,0.587,0.503,0.504
+0.004,0.996,1.000,0.998,0.188,0.007,0.013,0.996,0.592,0.503,0.505

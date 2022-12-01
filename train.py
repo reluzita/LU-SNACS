@@ -1,14 +1,14 @@
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
-from imblearn.under_sampling import RandomUnderSampler, NearMiss
+from imblearn.under_sampling import RandomUnderSampler, NearMiss, TomekLinks
 import sys
 import pandas as pd
 import argparse
 
 def get_us(us_strategy, ratio):
     if us_strategy == 'random':
-        return RandomUnderSampler(sampling_strategy=ratio)
+        return RandomUnderSampler(sampling_strategy=ratio, random_state=0)
     elif us_strategy == 'nearmiss1':
         return NearMiss(sampling_strategy=ratio, version=1)
     elif us_strategy == 'nearmiss2':
@@ -26,7 +26,7 @@ def train_us_ratios(X_train, y_train, X_test, y_test, ratios, us_strategy, resul
         clf = LogisticRegression().fit(X_train_us, y_train_us)
         y_pred = clf.predict(X_test)
         
-        report = classification_report(y_test, y_pred, output_dict=True)
+        report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
 
         results["majority precision"].append(report['0']['precision'])
         results["majority recall"].append(report['0']['recall'])
@@ -48,7 +48,7 @@ if __name__ == "__main__":
         description = 'Construct dataset for supervised link prediction from a network dataset')
 
     parser.add_argument('datafile', type=str, help='Dataset file name')
-    parser.add_argument('us_strategy', type=str, help='Undersampling technique to apply', choices=['random', 'nearmiss1', 'nearmiss2', 'nearmiss3'])
+    parser.add_argument('us_strategy', type=str, help='Undersampling technique to apply', choices=['random', 'nearmiss1', 'nearmiss2', 'nearmiss3', 'tomek'])
     
     args = parser.parse_args()
 
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
-    report = classification_report(y_test, y_pred, output_dict=True)
+    report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
 
     results = {
         'majority precision': [report['0']['precision']],
@@ -79,9 +79,30 @@ if __name__ == "__main__":
     }
 
     original_ratio = y_train.value_counts()[1] / y_train.value_counts()[0]
-    ratios = [r for r in [0.2, 0.4, 0.6, 0.8, 1.0] if r > original_ratio]
 
-    results = train_us_ratios(X_train, y_train, X_test, y_test, ratios, args.us_strategy, results)
+    if args.us_strategy == 'tomek':
+        undersample = TomekLinks(sampling_strategy='majority')
+        X_train_us, y_train_us = undersample.fit_resample(X_train, y_train)
+        clf = LogisticRegression().fit(X_train_us, y_train_us)
+        y_pred = clf.predict(X_test)
+        
+        report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
+        results["majority precision"].append(report['0']['precision'])
+        results["majority recall"].append(report['0']['recall'])
+        results["majority f1"].append(report['0']['f1-score'])
+        results["minority precision"].append(report['1']['precision'])
+        results["minority recall"].append(report['1']['recall'])
+        results["minority f1"].append(report['1']['f1-score'])
+        results["accuracy"].append(report['accuracy'])
+        results["macro avg precision"].append(report['macro avg']['precision'])
+        results["macro avg recall"].append(report['macro avg']['recall'])
+        results["macro avg f1"].append(report['macro avg']['f1-score'])
+
+        ratios = [y_train_us.value_counts()[1] / y_train_us.value_counts()[0]]
+
+    else:
+        ratios = [r for r in [0.2, 0.4, 0.6, 0.8, 1.0] if r > original_ratio]
+        results = train_us_ratios(X_train, y_train, X_test, y_test, ratios, args.us_strategy, results)
 
     ratios = [y_train.value_counts()[1] / y_train.value_counts()[0]] + ratios
     results['ratio'] = ratios
@@ -91,4 +112,4 @@ if __name__ == "__main__":
         results[col] = results[col].map('{:,.3f}'.format)
 
     filename = data_file.split('.')[0]
-    results.to_csv(f'results/{filename}_{args.us_strategy}_results.csv')
+    results.set_index('ratio').to_csv(f'results/{filename}_{args.us_strategy}_results.csv')
