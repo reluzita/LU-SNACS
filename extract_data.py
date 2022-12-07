@@ -36,7 +36,7 @@ def read_weighted_edges(filename):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog = 'Extract data',
+        prog = 'extract_data.py',
         description = 'Construct dataset for supervised link prediction from a network dataset')
 
     parser.add_argument('dataset', type=str, help='Dataset name')

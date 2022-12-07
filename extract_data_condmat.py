@@ -10,7 +10,7 @@ from network_features import get_undirected_features
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog = 'Extract data',
+        prog = 'extract_data_condmat.py',
         description = 'Construct dataset for supervised link prediction from the CondMat network dataset')
 
     parser.add_argument('n', type=int, help='Degree of the neighborhood to extract', choices=[2, 3, 4])

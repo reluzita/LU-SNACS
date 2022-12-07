@@ -8,7 +8,7 @@ from networkx.algorithms import bipartite
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog = 'Extract data',
+        prog = 'extract_data_bipartite.py',
         description = 'Construct dataset for supervised link prediction from a bipartite network dataset')
 
     parser.add_argument('n', type=int, help='Degree of the neighborhood to extract', choices=[3, 5])

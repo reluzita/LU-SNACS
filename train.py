@@ -38,13 +38,16 @@ def train_us_ratios(X_train, y_train, X_test, y_test, ratios, us_strategy, resul
         results["macro avg precision"].append(report['macro avg']['precision'])
         results["macro avg recall"].append(report['macro avg']['recall'])
         results["macro avg f1"].append(report['macro avg']['f1-score'])
+        results["weighted avg precision"].append(report['weighted avg']['precision'])
+        results["weighted avg recall"].append(report['weighted avg']['recall'])
+        results["weighted avg f1"].append(report['weighted avg']['f1-score'])
     
     return results
     
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog = 'Extract data',
+        prog = 'train.py',
         description = 'Construct dataset for supervised link prediction from a network dataset')
 
     parser.add_argument('datafile', type=str, help='Dataset file name')
@@ -75,7 +78,10 @@ if __name__ == "__main__":
         'accuracy': [report['accuracy']],
         'macro avg precision': [report['macro avg']['precision']],
         'macro avg recall': [report['macro avg']['recall']],
-        'macro avg f1': [report['macro avg']['f1-score']]
+        'macro avg f1': [report['macro avg']['f1-score']],
+        'weighted avg precision': [report['weighted avg']['precision']],
+        'weighted avg recall': [report['weighted avg']['recall']],
+        'weighted avg f1': [report['weighted avg']['f1-score']]
     }
 
     original_ratio = y_train.value_counts()[1] / y_train.value_counts()[0]
@@ -97,6 +103,9 @@ if __name__ == "__main__":
         results["macro avg precision"].append(report['macro avg']['precision'])
         results["macro avg recall"].append(report['macro avg']['recall'])
         results["macro avg f1"].append(report['macro avg']['f1-score'])
+        results["weighted avg precision"].append(report['weighted avg']['precision'])
+        results["weighted avg recall"].append(report['weighted avg']['recall'])
+        results["weighted avg f1"].append(report['weighted avg']['f1-score'])
 
         ratios = [y_train_us.value_counts()[1] / y_train_us.value_counts()[0]]
 
