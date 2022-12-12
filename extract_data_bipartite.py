@@ -23,18 +23,19 @@ if __name__ == "__main__":
         lines = f.readlines()
         for line in lines[1:]:
             data = line.strip().split(" ")
-            if int(data[0]) <= 1000 and int(data[1]) <= 10000:
-                user = 'user' + data[0]
-                tag = 'tag' + data[1]
-                user_nodes.add(user)
-                tag_nodes.add(tag)
-                
-                if (user, tag) not in edges_dict:
-                    edges_dict[(user, tag)] = {
-                        'weight': 1,
-                        'timestamp': float(data[3])}
-                else:
-                    edges_dict[(user, tag)]['weight'] += 1
+            user = 'user' + data[0]
+            tag = 'tag' + data[1]
+            if len(user_nodes) < 1000 or user in user_nodes:
+                if len(tag_nodes) < 10000 or tag in tag_nodes:
+                    user_nodes.add(user)
+                    tag_nodes.add(tag)
+                    
+                    if (user, tag) not in edges_dict:
+                        edges_dict[(user, tag)] = {
+                            'weight': 1,
+                            'timestamp': float(data[3])}
+                    else:
+                        edges_dict[(user, tag)]['weight'] += 1
             
     edges = [(v['timestamp'], (k[0], k[1], v['weight'])) for k, v in edges_dict.items()]
     edges = sorted(edges, key=lambda x: x[0], reverse=False)
