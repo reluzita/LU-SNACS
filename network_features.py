@@ -57,7 +57,10 @@ def get_features_dict(G, is_weighted, label_edges, G_und=None):
     #     features_dict["shortest_path"] = lambda p: nx.shortest_path_length(G, p[0], p[1], weight="weight")
     
     print("Calculating katz...")
-    katz_dict = nx.katz_centrality(G)
+    try:
+        katz_dict = nx.katz_centrality(G)
+    except:
+        katz_dict = nx.katz_centrality_numpy(G)
 
     features_dict["katz_i"] = lambda p: katz_dict.get(p[0], 0)
     features_dict["katz_j"] = lambda p: katz_dict.get(p[1], 0)
