@@ -48,13 +48,13 @@ def get_features_dict(G, is_weighted, label_edges, G_und=None):
         features_dict["outdegree_i"] = lambda p: G.out_degree(p[0])
         features_dict["outdegree_j"] = lambda p: G.out_degree(p[1])
         if is_weighted:
-            features_dict["involume_i"] = lambda p: sum(G[v][p[0]]['weight'] for v in G.predecessors(p[0]))
+            features_dict["involume_i"] = lambda p: sum(e[2]['weight'] for e in G.in_edges(p[0], data=True))
             features_dict["outvolume_i"] = lambda p: nx.volume(G, [p[0]])
-            features_dict["involume_j"] = lambda p: sum(G[v][p[1]]['weight'] for v in G.predecessors(p[1]))
+            features_dict["involume_j"] = lambda p: sum(e[2]['weight'] for e in G.in_edges(p[1], data=True))
             features_dict["outvolume_j"] = lambda p: nx.volume(G, [p[1]])
 
-    if is_weighted:
-        features_dict["shortest_path"] = lambda p: nx.shortest_path_length(G, p[0], p[1], weight="weight")
+    # if is_weighted:
+    #     features_dict["shortest_path"] = lambda p: nx.shortest_path_length(G, p[0], p[1], weight="weight")
     
     print("Calculating katz...")
     katz_dict = nx.katz_centrality_numpy(G)
@@ -62,8 +62,12 @@ def get_features_dict(G, is_weighted, label_edges, G_und=None):
     features_dict["katz_i"] = lambda p: katz_dict.get(p[0], 0)
     features_dict["katz_j"] = lambda p: katz_dict.get(p[1], 0)
 
-    features_dict["common_neighbors_list"] = lambda p: common_neighbors(G if G_und is None else G_und, p[0], p[1])
-    features_dict["pref_attach"] = lambda p: list(nx.preferential_attachment(G if G_und is None else G_und, [(p[0], p[1])]))[0][2]
+    if G_und:
+        features_dict["common_neighbors_list"] = lambda p: common_neighbors(G_und, p[0], p[1])
+        features_dict["pref_attach"] = lambda p: list(nx.preferential_attachment(G_und, [(p[0], p[1])]))[0][2]
+    else:
+        features_dict["common_neighbors_list"] = lambda p: common_neighbors(G, p[0], p[1])
+        features_dict["pref_attach"] = lambda p: list(nx.preferential_attachment(G, [(p[0], p[1])]))[0][2]
 
     print("Calculating pagerank...")
     pagerank_dict = nx.pagerank(G)
