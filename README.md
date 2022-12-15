@@ -14,10 +14,12 @@ Inside the data folder, also create a directory called `clean_datasets` so that 
 
 Each file contained in this repository was created with the following goals:
 
-- extract_data.py generates the data for supervised link prediction from a network dataset;
-- extract_data_condmat.py generates the data for supervised link prediction from the COND-MAT dataset;
-- extract_data_bipartite.py generates the data for supervised link prediction from a bipartite network dataset;
-- network_features.py contains helper functions for feature extraction;
-- train.py performs link prediction on the desired dataset using the specified undersampling technique;
-- graph_properties.ipynb was used for gaining insights into the properties of the used datasets;
-- visualize_results.ipynb was used for creating the plots and tables for the final paper.
+- `extract_data.py` generates the data for supervised link prediction from a network dataset;
+- `extract_data_condmat.py` generates the data for supervised link prediction from the COND-MAT dataset;
+- `extract_data_bipartite.py` generates the data for supervised link prediction from a bipartite network dataset;
+- `network_features.py` contains helper functions for feature extraction;
+- `train.py` performs link prediction on the desired dataset using the specified undersampling technique;
+- `graph_properties.ipynb` was used for gaining insights into the properties of the used datasets;
+- `visualize_results.ipynb` was used for creating the plots and tables for the final paper.
+
+Necessary python requirements can be found in the `requirements.txt` file.
