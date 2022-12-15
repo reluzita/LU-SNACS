@@ -30,26 +30,26 @@ def train_us_ratios(X_train, y_train, X_test, y_test, ratios, us_strategy, resul
         
         report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
 
-        results.get("majority precision", []).append(report['0']['precision'])
-        results.get("majority recall", []).append(report['0']['recall'])
-        results.get("majority f1", []).append(report['0']['f1-score'])
-        results.get("minority precision", []).append(report['1']['precision'])
-        results.get("minority recall", []).append(report['1']['recall'])
-        results.get("minority f1", []).append(report['1']['f1-score'])
-        results.get("accuracy", []).append(report['accuracy'])
-        results.get("macro avg precision", []).append(report['macro avg']['precision'])
-        results.get("macro avg recall", []).append(report['macro avg']['recall'])
-        results.get("macro avg f1", []).append(report['macro avg']['f1-score'])
-        results.get("weighted avg precision", []).append(report['weighted avg']['precision'])
-        results.get("weighted avg recall", []).append(report['weighted avg']['recall'])
-        results.get("weighted avg f1", []).append(report['weighted avg']['f1-score'])
+        results["majority precision"].append(report['0']['precision'])
+        results["majority recall"].append(report['0']['recall'])
+        results["majority f1"].append(report['0']['f1-score'])
+        results["minority precision"].append(report['1']['precision'])
+        results["minority recall"].append(report['1']['recall'])
+        results["minority f1"].append(report['1']['f1-score'])
+        results["accuracy"].append(report['accuracy'])
+        results["macro avg precision"].append(report['macro avg']['precision'])
+        results["macro avg recall"].append(report['macro avg']['recall'])
+        results["macro avg f1"].append(report['macro avg']['f1-score'])
+        results["weighted avg precision"].append(report['weighted avg']['precision'])
+        results["weighted avg recall"].append(report['weighted avg']['recall'])
+        results["weighted avg f1"].append(report['weighted avg']['f1-score'])
 
         fpr, tpr, _ = roc_curve(y_test, y_pred)
         auc_roc = auc(fpr, tpr)
 
-        results.get("auc", []).append(auc_roc)
-        results.get("fpr", []).append(list(fpr))
-        results.get("tpr", []).append(list(tpr))
+        results["auc"].append(auc_roc)
+        results["fpr"].append(list(fpr))
+        results["tpr"].append(list(tpr))
     
     return results
     
@@ -73,7 +73,24 @@ if __name__ == "__main__":
     feature_names.remove('label')
     X_train, X_test, y_train, y_test = train_test_split(features[feature_names].values, features['label'], test_size=0.3, random_state=0)
     
-    results = {}
+    results = {
+        'majority precision': [],
+        'majority recall': [],
+        'majority f1': [],
+        'minority precision': [],
+        'minority recall': [],
+        'minority f1': [],
+        'accuracy': [],
+        'macro avg precision': [],
+        'macro avg recall': [],
+        'macro avg f1': [],
+        'weighted avg precision': [],
+        'weighted avg recall': [],
+        'weighted avg f1': [],
+        "auc": [],
+        "fpr": [],
+        "tpr": [],
+    }
 
     if args.baseline:
         print("Establishing baseline predictions...")
